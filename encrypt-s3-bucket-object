@@ -1,0 +1,26 @@
+import boto3
+import os
+import sys
+import uuid
+
+def check_if_unencrypted(bucket, key):
+    s3 = boto3.resource('s3')
+    obj = s3.Object('bucket_name','key')
+
+    return not obj.server_side_encryption
+
+
+def handler(event, context):
+    s3 = boto3.client('s3')
+
+    for record in event['Records']:
+        bucket = record['s3']['bucket']['name']
+        key = record['s3']['object']['key']
+
+        if check_if_unencrypted(bucket, key):
+            download_path = '/tmp/{}'.format(uuid.uuid4())
+
+            s3.download_file(bucket, key, download_path)
+            data = open('test.jpg', 'rb')
+
+            s3.put_object(Bucket=bucket, ServerSideEncryption='AES256', Body=data)
